@@ -1,139 +1,97 @@
-const $btnKick = document.getElementById("btn-kick");
-const $btnSpecial = document.getElementById("btn-special");
-const logs = document.getElementById("logs");
+import { Pokemon } from "./pokemon.js";
+import { random, logAction, createClickCounter } from "./utils.js";
+import { pokemons } from "./pokemons.js";
 
-function createClickCounter(button, maxClicks) {
-    let clickCount = 0;
+const logs = [
+  "[ПЕРСОНАЖ №1] вспомнил что-то важное, но неожиданно [ПЕРСОНАЖ №2], не помня себя от испуга, ударил в предплечье врага.",
+  "[ПЕРСОНАЖ №1] поперхнулся, и за это [ПЕРСОНАЖ №2] с испугу приложил прямой удар коленом в лоб врага.",
+  "[ПЕРСОНАЖ №1] забылся, но в это время наглый [ПЕРСОНАЖ №2], приняв волевое решение, неслышно подойдя сзади, ударил.",
+  "[ПЕРСОНАЖ №1] пришел в себя, но неожиданно [ПЕРСОНАЖ №2] случайно нанес мощнейший удар.",
+  "[ПЕРСОНАЖ №1] поперхнулся, но в это время [ПЕРСОНАЖ №2] нехотя раздробил кулаком <вырезанно цензурой> противника.",
+  "[ПЕРСОНАЖ №1] удивился, а [ПЕРСОНАЖ №2] пошатнувшись влепил подлый удар.",
+  "[ПЕРСОНАЖ №1] высморкался, но неожиданно [ПЕРСОНАЖ №2] провел дробящий удар.",
+  "[ПЕРСОНАЖ №1] пошатнулся, и внезапно наглый [ПЕРСОНАЖ №2] беспричинно ударил в ногу противника",
+  "[ПЕРСОНАЖ №1] расстроился, как вдруг, неожиданно [ПЕРСОНАЖ №2] случайно влепил стопой в живот соперника.",
+  "[ПЕРСОНАЖ №1] пытался что-то сказать, но вдруг, неожиданно [ПЕРСОНАЖ №2] со скуки, разбил бровь сопернику.",
+];
+let character, enemy;
 
-    function handleClick() {
-        if (clickCount < maxClicks) {
-            clickCount++;
-            console.log(`Button "${button.id}" clicked (${clickCount}/${maxClicks} clicks)`);
-            // Ваш код для обработки клика здесь
-        } else {
-            console.log(`Button "${button.id}" reached maximum clicks (${maxClicks} clicks)`);
-            button.disabled = true;
-        }
-    }
+const init = () => {
+  console.log("Start Game!");
 
-    button.addEventListener('click', handleClick);
+  populatePokemonSelection();
 
-    return {
-        getClickCount: () => clickCount,
-        resetClickCount: () => {
-            clickCount = 0;
-            button.disabled = false;
-            console.log(`Button "${button.id}" click count reset`);
-        }
-    };
-}
+  const playerPokemonSelect = document.getElementById("player-pokemon");
+  const enemyPokemonSelect = document.getElementById("enemy-pokemon");
 
-const kickCounter = createClickCounter($btnKick, 6);
-const specialCounter = createClickCounter($btnSpecial, 6);
+  const updatePokemons = () => {
+    const playerPokemon = pokemons.find(
+      (p) => p.name === playerPokemonSelect.value
+    );
+    const enemyPokemon = pokemons.find(
+      (p) => p.name === enemyPokemonSelect.value
+    );
 
-const fighter = {
-    character: {
-        name: 'Pikachu',
-        defaultHP: 100,
-        damageHP: 100,
-        elHP: document.getElementById("health-character"),
-        elProgressbar: document.getElementById("progressbar-character"),
-        renderHP() {
-            this.renderHPLife();
-            this.renderProgressbarHP();
-        },
-        renderHPLife() {
-            this.elHP.innerText = `${this.damageHP}/${this.defaultHP}`;
-        },
-        renderProgressbarHP() {
-            this.elProgressbar.style.width = `${this.damageHP}%`;
-        },
-        changeHP(count) {
-            const log = this === fighter.enemy ? generateLog(this, fighter.character, count) : generateLog(this, fighter.enemy, count);
+    character = new Pokemon({
+      ...playerPokemon,
+      healthId: "health-character",
+      progressBarId: "progressbar-character",
+    });
+    enemy = new Pokemon({
+      ...enemyPokemon,
+      healthId: "health-enemy",
+      progressBarId: "progressbar-enemy",
+    });
 
-            logs.innerHTML = log;
-            if (this.damageHP < count) {
-                this.damageHP = 0;
-                alert(`Бедный ${this.name} проиграл бой!`);
-                $btnKick.disabled = true;
-                $btnSpecial.disabled = true;
-            } else {
-                this.damageHP -= count;
-            }
-            this.renderHP();
-        },
-    },
-    enemy: {
-        name: 'Charmander',
-        defaultHP: 100,
-        damageHP: 100,
-        elHP: document.getElementById("health-enemy"),
-        elProgressbar: document.getElementById("progressbar-enemy"),
-        renderHP() {
-            this.renderHPLife();
-            this.renderProgressbarHP();
-        },
-        renderHPLife() {
-            this.elHP.innerText = `${this.damageHP}/${this.defaultHP}`;
-        },
-        renderProgressbarHP() {
-            this.elProgressbar.style.width = `${this.damageHP}%`;
-        },
-        changeHP(count) {
-            const log = this === fighter.enemy ? generateLog(this, fighter.character, count) : generateLog(this, fighter.enemy, count);
+    character.updatePokemonInfo();
+    enemy.updatePokemonInfo();
 
-            console.log(log);
+    updateAttackButtons(character.attacks);
+  };
 
-            if (this.damageHP < count) {
-                this.damageHP = 0;
-                alert(`Бедный ${this.name} проиграл бой!`);
-                $btnKick.disabled = true;
-                $btnSpecial.disabled = true;
-            } else {
-                this.damageHP -= count;
-            }
-            this.renderHP();
-        },
-    },
+  playerPokemonSelect.addEventListener("change", updatePokemons);
+  enemyPokemonSelect.addEventListener("change", updatePokemons);
+
+  updatePokemons();
 };
 
-function generateLog(firstPerson, secondPerson, damage) {
-    const logs = [
-        `${firstPerson.name} вспомнил что-то важное, но неожиданно ${secondPerson.name}, не помня себя от испуга, ударил в предплечье врага. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} поперхнулся, и за это ${secondPerson.name}с испугу приложил прямой удар коленом в лоб врага. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} забылся, но в это время наглый ${secondPerson.name} приняв волевое решение, неслышно подойдя сзади, ударил. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} пришел в себя, но неожиданно ${secondPerson.name}случайно нанес мощнейший удар. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} поперхнулся, но в это время ${secondPerson.name}нехотя раздробил кулаком \<вырезанно цензурой\> противника. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} удивился, а ${secondPerson.name}пошатнувшись влепил подлый удар. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} высморкался, но неожиданно ${secondPerson.name}провел дробящий удар. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} пошатнулся, и внезапно наглый ${secondPerson.name}беспричинно ударил в ногу противника. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} расстроился, как вдруг, неожиданно ${secondPerson.name}случайно влепил стопой в живот соперника. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`,
-        `${firstPerson.name} пытался что-то сказать, но вдруг, неожиданно ${secondPerson.name} со скуки, разбил бровь сопернику. -${damage}, [${firstPerson.damageHP}/${firstPerson.defaultHP}]`
-    ];
+const updateAttackButtons = (attacks) => {
+  const buttonsContainer = document.getElementById("attack-buttons");
+  buttonsContainer.innerHTML = "";
 
-    return logs[random(logs.length) - 1];
-}
+  attacks.forEach((attack) => {
+    const button = document.createElement("button");
+    button.textContent = `${attack.name}`;
+    button.classList.add("button");
+    button.onclick = createAttackHandler(attack);
+    buttonsContainer.appendChild(button);
+  });
+};
 
-$btnKick.addEventListener('click', function () {
-    console.log('Kick');
-    fighter.character.changeHP(20);
-    console.log(`Remaining clicks: ${kickCounter.getClickCount()}`);
-});
+const createAttackHandler = (attack) => {
+  let counter = attack.maxCount;
+  return () => {
+    if (counter > 0) {
+      const damage = random(attack.minDamage, attack.maxDamage);
+      console.log(
+        `${character.name} использует ${attack.name}, нанося урон ${damage}`
+      );
+      enemy.changeHP(damage, logAction, character.name, logs);
+      counter--;
+    } else {
+      console.log(`Атака ${attack.name} больше не доступна`);
+    }
+  };
+};
 
-$btnSpecial.addEventListener('click', function () {
-    console.log('Special Attack');
-    fighter.character.changeHP(30);
-    console.log(`Remaining clicks: ${specialCounter.getClickCount()}`);
-});
+const populatePokemonSelection = () => {
+  const playerPokemonSelect = document.getElementById("player-pokemon");
+  const enemyPokemonSelect = document.getElementById("enemy-pokemon");
 
-function init() {
-    console.log('Start game!');
-    fighter.character.renderHP();
-    fighter.enemy.renderHP();
-}
+  pokemons.forEach((pokemon) => {
+    playerPokemonSelect.add(new Option(pokemon.name, pokemon.name));
+    enemyPokemonSelect.add(new Option(pokemon.name, pokemon.name));
+  });
+};
 
-function random(num) {
-    return Math.ceil(Math.random() * num);
-}
-
-init();
+document.addEventListener("DOMContentLoaded", init);
